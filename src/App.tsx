@@ -192,6 +192,10 @@ function AppContent() {
     }
   };
 
+  const myPostsCount = user
+    ? [...publicCommands, ...privateCommands].filter((c) => c.ownerUid === user.uid).length
+    : 0;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-indigo-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
       {/* Responsive Sidebar */}
@@ -202,6 +206,7 @@ function AppContent() {
         onNavigate={handleNavigate}
         publicCount={publicCommands.length}
         privateCount={privateCommands.length}
+        myPostsCount={myPostsCount}
         favoritesCount={favorites.length}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}

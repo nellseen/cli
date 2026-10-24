@@ -11,6 +11,7 @@ import {
   LogOut,
   LogIn,
   ShieldCheck,
+  UserCheck,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -22,6 +23,7 @@ interface SidebarProps {
   onNavigate: (view: string, filter?: FilterView, category?: string | null) => void;
   publicCount: number;
   privateCount: number;
+  myPostsCount: number;
   favoritesCount: number;
   isOpen: boolean;
   onClose: () => void;
@@ -33,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNavigate,
   publicCount,
   privateCount,
+  myPostsCount,
   favoritesCount,
   isOpen,
   onClose,
@@ -63,6 +66,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       view: 'library',
       filter: 'public' as FilterView,
       count: publicCount,
+    },
+    {
+      id: 'library-my-posts',
+      label: t('navMyPosts'),
+      icon: UserCheck,
+      view: 'library',
+      filter: 'my-posts' as FilterView,
+      count: user ? myPostsCount : 0,
+      requiresAuth: true,
     },
     {
       id: 'library-private',

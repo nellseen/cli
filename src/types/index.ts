@@ -11,6 +11,7 @@ export interface Command {
   tags?: string[];
   visibility: Visibility;
   ownerUid: string;
+  authorName?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -22,6 +23,7 @@ export interface CommandFormData {
   category: string;
   tags: string[];
   visibility: Visibility;
+  authorName?: string;
   isFavorite?: boolean;
 }
 
@@ -35,7 +37,7 @@ export interface CategoryInfo {
   icon: string;
 }
 
-export type FilterView = 'all' | 'public' | 'private' | 'favorites';
+export type FilterView = 'all' | 'public' | 'private' | 'my-posts' | 'favorites';
 
 export type SortOrder = 'recent' | 'alphabetical' | 'updated';
 

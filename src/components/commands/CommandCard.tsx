@@ -123,6 +123,17 @@ export const CommandCard: React.FC<CommandCardProps> = ({
               </span>
             )}
 
+            {/* Author Attribution */}
+            {isOwner ? (
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50">
+                {language === 'id' ? 'Oleh Anda' : 'By You'}
+              </span>
+            ) : command.authorName ? (
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
+                @{command.authorName}
+              </span>
+            ) : null}
+
             {/* Safety Warning Badge */}
             {safety.isDestructive && (
               <span

@@ -73,12 +73,11 @@ export async function getCommandById(commandId: string): Promise<Command | null>
 /**
  * Create a new command
  */
-export async function createCommand(formData: CommandFormData, ownerUid: string): Promise<string> {
+export async function createCommand(formData: CommandFormData, ownerUid: string, authorName?: string): Promise<string> {
   const commandId = 'cmd_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
   const path = `${COMMANDS_COLLECTION}/${commandId}`;
 
-  // Sanitize and adhere to blueprint bounds
-  const cleanData = {
+  const cleanData: Record<string, any> = {
     name: formData.name.trim().slice(0, 120),
     command: formData.command.trim().slice(0, 5000),
     description: (formData.description || '').trim().slice(0, 1500),
@@ -89,6 +88,11 @@ export async function createCommand(formData: CommandFormData, ownerUid: string)
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
+
+  const author = (authorName || formData.authorName || '').trim().slice(0, 100);
+  if (author) {
+    cleanData.authorName = author;
+  }
 
   try {
     await setDoc(doc(db, COMMANDS_COLLECTION, commandId), cleanData);
@@ -112,6 +116,7 @@ export async function updateCommand(commandId: string, formData: Partial<Command
   if (formData.description !== undefined) updates.description = formData.description.trim().slice(0, 1500);
   if (formData.category !== undefined) updates.category = formData.category.trim().slice(0, 50);
   if (formData.visibility !== undefined) updates.visibility = formData.visibility;
+  if (formData.authorName !== undefined) updates.authorName = formData.authorName.trim().slice(0, 100);
   if (formData.tags !== undefined) {
     updates.tags = formData.tags.map((t) => t.trim().slice(0, 30)).filter(Boolean).slice(0, 15);
   }

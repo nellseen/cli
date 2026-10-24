@@ -241,7 +241,7 @@ export const CommandDetailModal: React.FC<CommandDetailModalProps> = ({
             </span>
             <span className="flex items-center gap-1.5">
               <User className="w-3.5 h-3.5" />
-              {t('ownerLabel')}: {command.ownerUid.slice(0, 10)}...
+              {t('ownerLabel')}: {command.authorName ? `@${command.authorName}` : isOwner ? (language === 'id' ? 'Anda' : 'You') : `${command.ownerUid.slice(0, 10)}...`}
             </span>
           </div>
 

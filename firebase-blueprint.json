@@ -39,6 +39,11 @@
           "maxLength": 128,
           "description": "UID of the user who created this command"
         },
+        "authorName": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Display name or email of the author"
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

@@ -9,6 +9,7 @@ import {
   List,
   Plus,
   Terminal,
+  UserCheck,
   X,
 } from 'lucide-react';
 import { Command, FilterView, SortOrder } from '../types';
@@ -68,6 +69,10 @@ export const Library: React.FC<LibraryProps> = ({
   // Combine accessible commands based on user auth
   const accessiblePool = useMemo(() => {
     if (activeFilter === 'public') return publicCommands;
+    if (activeFilter === 'my-posts') {
+      if (!user) return [];
+      return [...publicCommands, ...privateCommands].filter((c) => c.ownerUid === user.uid);
+    }
     if (activeFilter === 'private') return user ? privateCommands : [];
     if (activeFilter === 'favorites') {
       const all = [...publicCommands, ...(user ? privateCommands : [])];
@@ -148,6 +153,7 @@ export const Library: React.FC<LibraryProps> = ({
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             {activeFilter === 'all' && t('libraryHeadingAll')}
             {activeFilter === 'public' && t('libraryHeadingPublic')}
+            {activeFilter === 'my-posts' && t('libraryHeadingMyPosts')}
             {activeFilter === 'private' && t('libraryHeadingPrivate')}
             {activeFilter === 'favorites' && t('libraryHeadingFavorites')}
           </h1>
@@ -224,6 +230,26 @@ export const Library: React.FC<LibraryProps> = ({
           <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
             {publicCommands.length}
           </span>
+        </button>
+
+        <button
+          onClick={() => {
+            if (!user) onOpenAuthModal();
+            else onFilterChange('my-posts');
+          }}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+            activeFilter === 'my-posts'
+              ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+              : 'glass-card text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <UserCheck className="w-3.5 h-3.5" />
+          <span>{t('navMyPosts')}</span>
+          {user && (
+            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
+              {[...publicCommands, ...privateCommands].filter((c) => c.ownerUid === user.uid).length}
+            </span>
+          )}
         </button>
 
         <button
@@ -385,6 +411,8 @@ export const Library: React.FC<LibraryProps> = ({
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {searchQuery || selectedCategory
               ? t('noCommandsFoundSearch')
+              : activeFilter === 'my-posts'
+              ? t('noCommandsFoundMyPosts')
               : activeFilter === 'private'
               ? t('noCommandsFoundPrivate')
               : activeFilter === 'favorites'

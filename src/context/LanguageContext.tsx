@@ -19,6 +19,7 @@ export const translations = {
   navOverview: { en: 'Overview', id: 'Ikhtisar' },
   navAllCommands: { en: 'All Commands', id: 'Semua Perintah' },
   navPublicLibrary: { en: 'Public Library', id: 'Pustaka Publik' },
+  navMyPosts: { en: 'My Posts', id: 'Postingan Saya' },
   navPrivateCommands: { en: 'My Private Commands', id: 'Perintah Pribadi Saya' },
   navFavorites: { en: 'Favorites', id: 'Favorit' },
   navCategories: { en: 'Categories', id: 'Kategori' },
@@ -70,6 +71,7 @@ export const translations = {
   // Library Page
   libraryHeadingAll: { en: 'Command Reference Library', id: 'Pustaka Referensi Perintah' },
   libraryHeadingPublic: { en: 'Public Community Library', id: 'Pustaka Komunitas Publik' },
+  libraryHeadingMyPosts: { en: 'Commands Created by You', id: 'Perintah yang Anda Posting' },
   libraryHeadingPrivate: { en: 'My Private Commands', id: 'Perintah Pribadi Saya' },
   libraryHeadingFavorites: { en: 'Bookmarked Favorites', id: 'Perintah Favorit Tersimpan' },
   matchingCurrentFilters: { en: 'matching current filters', id: 'sesuai dengan filter aktif' },
@@ -83,6 +85,7 @@ export const translations = {
   noCommandsFoundTitle: { en: 'No commands found', id: 'Tidak ada perintah ditemukan' },
   noCommandsFoundSearch: { en: 'Try modifying your search keywords or clearing active category filters.', id: 'Coba ubah kata kunci pencarian Anda atau hapus filter kategori aktif.' },
   noCommandsFoundPrivate: { en: 'You have not created any private commands yet.', id: 'Anda belum membuat perintah pribadi apa pun.' },
+  noCommandsFoundMyPosts: { en: 'You have not created any commands yet. Click Add Command to share your first command.', id: 'Anda belum membuat perintah apa pun. Klik Tambah Perintah untuk memposting perintah pertama Anda.' },
   noCommandsFoundFavorites: { en: 'You have not starred any favorite commands yet. Click the star icon on any command card to bookmark it.', id: 'Anda belum menandai perintah favorit. Klik ikon bintang pada kartu perintah mana saja untuk menyimpannya.' },
   noCommandsFoundGeneral: { en: 'Start your collection by adding your first CLI command.', id: 'Mulai koleksi Anda dengan menambahkan perintah CLI pertama.' },
 

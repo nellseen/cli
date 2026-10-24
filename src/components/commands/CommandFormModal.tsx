@@ -66,7 +66,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
       setCategory(DEFAULT_CATEGORIES[0].name);
       setIsCustomCategory(false);
       setCustomCategory('');
-      setVisibility(isAdmin ? 'public' : 'private');
+      setVisibility('public');
       setTags([]);
       setIsFavorite(false);
     }
@@ -101,13 +101,6 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
     if (!description.trim()) errs.description = language === 'id' ? 'Deskripsi wajib diisi' : 'Description is required';
     const finalCat = isCustomCategory ? customCategory.trim() : category;
     if (!finalCat) errs.category = language === 'id' ? 'Kategori wajib diisi' : 'Category is required';
-
-    if (visibility === 'public' && !isAdmin) {
-      errs.visibility =
-        language === 'id'
-          ? 'Hanya administrator resmi yang dapat mempublikasikan perintah publik. Silakan atur visibilitas ke Pribadi.'
-          : 'Only authorized administrators can publish public commands. Please set visibility to Private.';
-    }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -148,7 +141,8 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
         );
         onSuccess(editingCommand.id);
       } else {
-        const newId = await createCommand(payload, user.uid);
+        const authorName = user.displayName || user.email?.split('@')[0] || 'User';
+        const newId = await createCommand(payload, user.uid, authorName);
         if (isFavorite && user) {
           await addFavorite(user.uid, newId);
         }
@@ -317,14 +311,13 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setVisibility('public')}
-                  disabled={!isAdmin}
                   className={`px-3 py-2 text-xs font-medium rounded-xl border transition text-center ${
                     visibility === 'public'
                       ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 shadow-sm'
-                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                  } ${!isAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                  }`}
                 >
-                  {t('visibilityPublicLabel')} {isAdmin ? '(Admin)' : ''}
+                  {language === 'id' ? 'Publik (Bisa Dilihat Semua)' : 'Public (Visible to All)'}
                 </button>
                 <button
                   type="button"
@@ -332,18 +325,12 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
                   className={`px-3 py-2 text-xs font-medium rounded-xl border transition text-center ${
                     visibility === 'private'
                       ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-sm'
-                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
                   }`}
                 >
-                  {t('visibilityPrivateLabel')}
+                  {language === 'id' ? 'Pribadi (Hanya Saya)' : 'Private (Only Me)'}
                 </button>
               </div>
-              {!isAdmin && visibility === 'public' && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                  {t('visibilityAdminNotice')}
-                </p>
-              )}
-              {errors.visibility && <p className="text-xs text-rose-500 mt-1">{errors.visibility}</p>}
             </div>
           </div>
 
