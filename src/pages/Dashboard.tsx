@@ -44,17 +44,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const { user } = useAuth();
   const { language, t } = useLanguage();
 
-  const totalAccessible = publicCommands.length + (user ? privateCommands.length : 0);
-  const allAccessibleCommands = [...publicCommands, ...(user ? privateCommands : [])];
+  // Deduplicate all accessible commands using Map keyed by id
+  const allAccessibleCommands = React.useMemo(() => {
+    const map = new Map<string, Command>();
+    publicCommands.forEach((c) => {
+      if (c && c.id) map.set(c.id, c);
+    });
+    if (user) {
+      privateCommands.forEach((c) => {
+        if (c && c.id) map.set(c.id, c);
+      });
+    }
+    return Array.from(map.values());
+  }, [publicCommands, privateCommands, user]);
+
+  const totalAccessible = allAccessibleCommands.length;
 
   // Recently added commands (sorted newest first)
-  const recentCommands = [...allAccessibleCommands]
-    .sort((a, b) => {
-      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-      return timeB - timeA;
-    })
-    .slice(0, 6);
+  const recentCommands = React.useMemo(() => {
+    return [...allAccessibleCommands]
+      .sort((a, b) => {
+        const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return timeB - timeA;
+      })
+      .slice(0, 6);
+  }, [allAccessibleCommands]);
 
   // Category counts
   const categoryCounts = DEFAULT_CATEGORIES.map((cat) => {
@@ -223,9 +238,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {recentCommands.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {recentCommands.map((command) => (
+            {recentCommands.map((command, idx) => (
               <CommandCard
-                key={command.id}
+                key={command.id || `recent-${idx}`}
                 command={command}
                 isFavorite={favorites.includes(command.id)}
                 onToggleFavorite={onToggleFavorite}

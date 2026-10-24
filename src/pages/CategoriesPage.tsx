@@ -40,7 +40,19 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
 }) => {
   const { user } = useAuth();
   const { language, t } = useLanguage();
-  const allCommands = [...publicCommands, ...(user ? privateCommands : [])];
+
+  const allCommands = React.useMemo(() => {
+    const map = new Map<string, Command>();
+    publicCommands.forEach((c) => {
+      if (c && c.id) map.set(c.id, c);
+    });
+    if (user) {
+      privateCommands.forEach((c) => {
+        if (c && c.id) map.set(c.id, c);
+      });
+    }
+    return Array.from(map.values());
+  }, [publicCommands, privateCommands, user]);
 
   // Identify all categories including any custom ones created by users
   const categoryStats = DEFAULT_CATEGORIES.map((cat) => {

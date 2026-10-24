@@ -66,21 +66,78 @@ export const Library: React.FC<LibraryProps> = ({
   const { user } = useAuth();
   const { language, t } = useLanguage();
 
-  // Combine accessible commands based on user auth
+  // Combine accessible commands based on user auth and strictly deduplicate by id
   const accessiblePool = useMemo(() => {
-    if (activeFilter === 'public') return publicCommands;
-    if (activeFilter === 'my-posts') {
-      if (!user) return [];
-      return [...publicCommands, ...privateCommands].filter((c) => c.ownerUid === user.uid);
+    const map = new Map<string, Command>();
+
+    if (activeFilter === 'public') {
+      publicCommands.forEach((c) => {
+        if (c && c.id) map.set(c.id, c);
+      });
+    } else if (activeFilter === 'my-posts') {
+      if (user) {
+        publicCommands.forEach((c) => {
+          if (c && c.id && c.ownerUid === user.uid) map.set(c.id, c);
+        });
+        privateCommands.forEach((c) => {
+          if (c && c.id && c.ownerUid === user.uid) map.set(c.id, c);
+        });
+      }
+    } else if (activeFilter === 'private') {
+      if (user) {
+        privateCommands.forEach((c) => {
+          if (c && c.id) map.set(c.id, c);
+        });
+      }
+    } else if (activeFilter === 'favorites') {
+      const favSet = new Set(favorites);
+      publicCommands.forEach((c) => {
+        if (c && c.id && favSet.has(c.id)) map.set(c.id, c);
+      });
+      if (user) {
+        privateCommands.forEach((c) => {
+          if (c && c.id && favSet.has(c.id)) map.set(c.id, c);
+        });
+      }
+    } else {
+      // 'all'
+      publicCommands.forEach((c) => {
+        if (c && c.id) map.set(c.id, c);
+      });
+      if (user) {
+        privateCommands.forEach((c) => {
+          if (c && c.id) map.set(c.id, c);
+        });
+      }
     }
-    if (activeFilter === 'private') return user ? privateCommands : [];
-    if (activeFilter === 'favorites') {
-      const all = [...publicCommands, ...(user ? privateCommands : [])];
-      return all.filter((c) => favorites.includes(c.id));
-    }
-    // 'all'
-    return [...publicCommands, ...(user ? privateCommands : [])];
+
+    return Array.from(map.values());
   }, [activeFilter, publicCommands, privateCommands, favorites, user]);
+
+  const allUniqueCommandsCount = useMemo(() => {
+    const map = new Map<string, Command>();
+    publicCommands.forEach((c) => {
+      if (c && c.id) map.set(c.id, c);
+    });
+    if (user) {
+      privateCommands.forEach((c) => {
+        if (c && c.id) map.set(c.id, c);
+      });
+    }
+    return map.size;
+  }, [publicCommands, privateCommands, user]);
+
+  const myPostsUniqueCount = useMemo(() => {
+    if (!user) return 0;
+    const map = new Map<string, Command>();
+    publicCommands.forEach((c) => {
+      if (c && c.id && c.ownerUid === user.uid) map.set(c.id, c);
+    });
+    privateCommands.forEach((c) => {
+      if (c && c.id && c.ownerUid === user.uid) map.set(c.id, c);
+    });
+    return map.size;
+  }, [publicCommands, privateCommands, user]);
 
   // Extract all distinct categories from commands
   const allCategories = useMemo(() => {
@@ -213,7 +270,7 @@ export const Library: React.FC<LibraryProps> = ({
           <Layers className="w-3.5 h-3.5" />
           <span>{t('navAllCommands')}</span>
           <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
-            {publicCommands.length + (user ? privateCommands.length : 0)}
+            {allUniqueCommandsCount}
           </span>
         </button>
 
@@ -247,7 +304,7 @@ export const Library: React.FC<LibraryProps> = ({
           <span>{t('navMyPosts')}</span>
           {user && (
             <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
-              {[...publicCommands, ...privateCommands].filter((c) => c.ownerUid === user.uid).length}
+              {myPostsUniqueCount}
             </span>
           )}
         </button>
@@ -387,9 +444,9 @@ export const Library: React.FC<LibraryProps> = ({
               : 'space-y-3'
           }
         >
-          {filteredCommands.map((command) => (
+          {filteredCommands.map((command, idx) => (
             <CommandCard
-              key={command.id}
+              key={command.id || `cmd-${idx}`}
               command={command}
               isFavorite={favorites.includes(command.id)}
               onToggleFavorite={onToggleFavorite}

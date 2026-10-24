@@ -71,6 +71,17 @@ function AppContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
+  // Helper to deduplicate commands by id
+  const dedupeCommands = (commands: Command[]): Command[] => {
+    const map = new Map<string, Command>();
+    commands.forEach((cmd) => {
+      if (cmd && cmd.id) {
+        map.set(cmd.id, cmd);
+      }
+    });
+    return Array.from(map.values());
+  };
+
   // Load public and private commands
   const loadCommands = useCallback(async () => {
     setIsLoading(true);
@@ -80,20 +91,26 @@ function AppContent() {
       const userOnlyCommands = (fetchedPublic || []).filter(
         (c) => !c.id.startsWith('cmd-') && c.ownerUid !== 'system_curated'
       );
-      setPublicCommands(userOnlyCommands);
+      const dedupedPublic = dedupeCommands(userOnlyCommands);
+      setPublicCommands(dedupedPublic);
 
       // Fetch private commands if authenticated
       if (user) {
         const fetchedPrivate = await getPrivateCommands(user.uid);
-        setPrivateCommands(fetchedPrivate || []);
+        const publicIds = new Set(dedupedPublic.map((c) => c.id));
+        // Ensure private list doesn't duplicate commands that are already in public
+        const dedupedPrivate = dedupeCommands(
+          (fetchedPrivate || []).filter((c) => !publicIds.has(c.id))
+        );
+        setPrivateCommands(dedupedPrivate);
 
         const userFavs = await getUserFavorites(user.uid);
-        setFavorites(userFavs || []);
+        setFavorites(Array.from(new Set(userFavs || [])));
       } else {
         setPrivateCommands([]);
         // Guest local favorites
         const localFavs = JSON.parse(localStorage.getItem('commandvault_guest_favs') || '[]');
-        setFavorites(localFavs);
+        setFavorites(Array.from(new Set(localFavs)));
       }
     } catch (err: any) {
       console.error('Error fetching commands:', err);
@@ -192,9 +209,17 @@ function AppContent() {
     }
   };
 
-  const myPostsCount = user
-    ? [...publicCommands, ...privateCommands].filter((c) => c.ownerUid === user.uid).length
-    : 0;
+  const myPostsCount = React.useMemo(() => {
+    if (!user) return 0;
+    const map = new Map<string, Command>();
+    publicCommands.forEach((c) => {
+      if (c && c.id) map.set(c.id, c);
+    });
+    privateCommands.forEach((c) => {
+      if (c && c.id) map.set(c.id, c);
+    });
+    return Array.from(map.values()).filter((c) => c.ownerUid === user.uid).length;
+  }, [user, publicCommands, privateCommands]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-indigo-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
