@@ -20,9 +20,9 @@ import {
   addFavorite,
   removeFavorite,
   deleteCommand as deleteCommandDoc,
+  deleteAllTemplateCommands,
 } from './services/commands';
 import { testConnection } from './services/firebase';
-import { STARTER_COMMANDS } from './data/starterCommands';
 
 function AppContent() {
   const { user } = useAuth();
@@ -77,18 +77,10 @@ function AppContent() {
     try {
       // Fetch public commands
       const fetchedPublic = await getPublicCommands();
-      if (fetchedPublic && fetchedPublic.length > 0) {
-        setPublicCommands(fetchedPublic);
-      } else {
-        // Fallback to starter commands when Firestore is empty
-        const mappedStarters: Command[] = STARTER_COMMANDS.map((s) => ({
-          ...s,
-          ownerUid: 'system_curated',
-          createdAt: new Date('2026-01-01T00:00:00Z'),
-          updatedAt: new Date('2026-01-01T00:00:00Z'),
-        }));
-        setPublicCommands(mappedStarters);
-      }
+      const userOnlyCommands = (fetchedPublic || []).filter(
+        (c) => !c.id.startsWith('cmd-') && c.ownerUid !== 'system_curated'
+      );
+      setPublicCommands(userOnlyCommands);
 
       // Fetch private commands if authenticated
       if (user) {
@@ -110,10 +102,14 @@ function AppContent() {
     }
   }, [user]);
 
-  // Initial load and connection check
+  // Initial load, purge any template commands, and connection check
   useEffect(() => {
     testConnection();
-    loadCommands();
+    deleteAllTemplateCommands()
+      .catch(() => {})
+      .finally(() => {
+        loadCommands();
+      });
   }, [loadCommands]);
 
   // Navigate handler

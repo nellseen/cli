@@ -12,7 +12,7 @@ import { useAuth, BOOTSTRAPPED_ADMIN_EMAIL } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Command } from '../types';
-import { seedStarterLibrary } from '../services/commands';
+import { deleteAllTemplateCommands } from '../services/commands';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 interface SettingsPageProps {
@@ -29,7 +29,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const { user, isAdmin } = useAuth();
   const { success, error, info } = useToast();
   const { language, setLanguage, t } = useLanguage();
-  const [isSeeding, setIsSeeding] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Export all accessible commands as JSON
@@ -56,32 +56,32 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     );
   };
 
-  // Seed standard library into Firestore
-  const handleSeedDatabase = async () => {
+  // Clear all template / starter commands from Firestore
+  const handleClearTemplates = async () => {
     if (!user || !isAdmin) {
       error(
         language === 'id' ? 'Izin Administrator Diperlukan' : 'Admin authorization required',
-        language === 'id' ? 'Hanya administrator yang dapat menulis perintah bawaan ke Firestore.' : 'Only administrators can seed public commands to Firestore.'
+        language === 'id' ? 'Hanya administrator yang dapat membersihkan pustaka template.' : 'Only administrators can clear template commands.'
       );
       return;
     }
 
-    setIsSeeding(true);
+    setIsClearing(true);
     try {
-      const count = await seedStarterLibrary(user.uid);
+      const count = await deleteAllTemplateCommands();
       await onRefreshData();
       success(
-        language === 'id' ? 'Basis Data Berhasil Diisi' : 'Database seeded',
-        language === 'id' ? `Berhasil menulis ${count} perintah standar ke Cloud Firestore.` : `Successfully wrote ${count} standard commands to Cloud Firestore.`
+        language === 'id' ? 'Template Dihapus' : 'Templates Cleared',
+        language === 'id' ? `Berhasil menghapus ${count} perintah template. Pustaka kini bersih untuk diisi manual.` : `Cleared ${count} template commands. Library is now ready for manual entry.`
       );
     } catch (err: any) {
-      console.error('Seeding error:', err);
+      console.error('Clear error:', err);
       error(
-        language === 'id' ? 'Gagal mengisi basis data' : 'Failed to seed',
-        err.message || (language === 'id' ? 'Periksa aturan keamanan Firestore.' : 'Please verify Firestore security rules.')
+        language === 'id' ? 'Gagal membersihkan template' : 'Failed to clear templates',
+        err.message || 'Error.'
       );
     } finally {
-      setIsSeeding(false);
+      setIsClearing(false);
     }
   };
 
@@ -246,24 +246,28 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
         </div>
 
-        {/* Database Seeding Option for Admin */}
+        {/* Template Purge Option for Admin */}
         {isAdmin && (
-          <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="text-xs">
-              <p className="font-semibold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-indigo-500" />
-                {t('seedLibraryTitle')}
+              <p className="font-semibold text-rose-950 dark:text-rose-200 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-rose-500" />
+                {language === 'id' ? 'Hapus Semua Template Bawaan' : 'Purge All Template Commands'}
               </p>
               <p className="text-slate-600 dark:text-slate-400 mt-0.5">
-                {t('seedLibraryDesc')}
+                {language === 'id'
+                  ? 'Hapus seluruh perintah contoh/bawaan dari Firestore agar Anda dapat mengisi pustaka secara manual dari nol.'
+                  : 'Remove all default sample commands from Firestore so you can start with a 100% empty library.'}
               </p>
             </div>
             <button
-              onClick={handleSeedDatabase}
-              disabled={isSeeding}
-              className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-sm disabled:opacity-50 shrink-0"
+              onClick={handleClearTemplates}
+              disabled={isClearing}
+              className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-sm disabled:opacity-50 shrink-0"
             >
-              {isSeeding ? t('seedingBtn') : t('seedBtn')}
+              {isClearing
+                ? (language === 'id' ? 'Menghapus...' : 'Clearing...')
+                : (language === 'id' ? 'Hapus Template' : 'Clear Templates')}
             </button>
           </div>
         )}

@@ -180,28 +180,25 @@ export async function removeFavorite(userId: string, commandId: string): Promise
 }
 
 /**
- * Seed starter commands into Firestore
+ * Delete all template commands that might exist in Firestore
  */
-export async function seedStarterLibrary(adminUid: string): Promise<number> {
+export async function deleteAllTemplateCommands(): Promise<number> {
+  const q = query(collection(db, COMMANDS_COLLECTION));
+  const snapshot = await getDocs(q);
   const batch = writeBatch(db);
   let count = 0;
 
-  for (const starter of STARTER_COMMANDS) {
-    const ref = doc(db, COMMANDS_COLLECTION, starter.id);
-    batch.set(ref, {
-      name: starter.name,
-      command: starter.command,
-      description: starter.description,
-      category: starter.category,
-      tags: starter.tags || [],
-      visibility: 'public',
-      ownerUid: adminUid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    count++;
-  }
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    // Template commands start with 'cmd-' or have ownerUid 'system_curated'
+    if (docSnap.id.startsWith('cmd-') || data.ownerUid === 'system_curated') {
+      batch.delete(docSnap.ref);
+      count++;
+    }
+  });
 
-  await batch.commit();
+  if (count > 0) {
+    await batch.commit();
+  }
   return count;
 }
