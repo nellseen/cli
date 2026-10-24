@@ -1,6 +1,6 @@
 import { SafetyAnalysis } from '../types';
 
-export function analyzeCommandSafety(commandText: string): SafetyAnalysis {
+export function analyzeCommandSafety(commandText: string, lang: 'id' | 'en' = 'id'): SafetyAnalysis {
   const normalized = commandText.trim().toLowerCase();
 
   // High danger checks
@@ -18,9 +18,14 @@ export function analyzeCommandSafety(commandText: string): SafetyAnalysis {
     return {
       isDestructive: true,
       severity: 'danger',
-      warningTitle: 'Destructive / Irreversible Operation',
+      warningTitle:
+        lang === 'id'
+          ? 'Operasi Destruktif / Tidak Dapat Dibatalkan'
+          : 'Destructive / Irreversible Operation',
       warningExplanation:
-        'This command can permanently erase storage drives, reformat partitions, or crash system processes without confirmation. Verify disk identifiers and paths carefully before running.',
+        lang === 'id'
+          ? 'Perintah ini dapat menghapus disk secara permanen, memformat partisi sistem, atau mematikan kernel tanpa konfirmasi. Periksa pengenal disk dan jalur direktori secara teliti sebelum dijalankan.'
+          : 'This command can permanently erase storage drives, reformat partitions, or crash system processes without confirmation. Verify disk identifiers and paths carefully before running.',
     };
   }
 
@@ -43,9 +48,14 @@ export function analyzeCommandSafety(commandText: string): SafetyAnalysis {
     return {
       isDestructive: true,
       severity: 'caution',
-      warningTitle: 'Caution: Potential Data Loss or Privilege Risk',
+      warningTitle:
+        lang === 'id'
+          ? 'Perhatian: Potensi Kehilangan Data / Risiko Hak Akses'
+          : 'Caution: Potential Data Loss or Privilege Risk',
       warningExplanation:
-        'This command recursively deletes files, resets uncommitted Git trees, wipes firewall rules, or grants world-writable permissions. Ensure you have backups and intended targets.',
+        lang === 'id'
+          ? 'Perintah ini menghapus berkas rekursif, me-reset pohon kerja Git, mengosongkan aturan firewall, atau membuka izin berkas ke semua pengguna. Pastikan Anda telah membuat cadangan data yang diperlukan.'
+          : 'This command recursively deletes files, resets uncommitted Git trees, wipes firewall rules, or grants world-writable permissions. Ensure you have backups and intended targets.',
     };
   }
 

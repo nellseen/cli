@@ -84,7 +84,10 @@ service cloud.firestore {
 
     // User Bookmarks / Favorites Subcollection
     match /users/{userId}/favorites/{commandId} {
-      allow read: if isValidId(userId) && isValidId(commandId) &&
+      allow get: if isValidId(userId) && isValidId(commandId) &&
+        isSignedIn() && request.auth.uid == userId;
+
+      allow list: if isValidId(userId) &&
         isSignedIn() && request.auth.uid == userId;
 
       allow create: if isValidId(userId) && isValidId(commandId) &&
@@ -101,7 +104,8 @@ service cloud.firestore {
 
     // Administrators Collection
     match /admins/{adminUid} {
-      allow read: if isValidId(adminUid) && isSignedIn() && (request.auth.uid == adminUid || isAdmin());
+      allow get: if isValidId(adminUid) && isSignedIn() && (request.auth.uid == adminUid || isAdmin());
+      allow list: if isSignedIn() && isAdmin();
       allow write: if isValidId(adminUid) && isAdmin();
     }
   }

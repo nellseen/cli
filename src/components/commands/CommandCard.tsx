@@ -13,7 +13,9 @@ import {
 import { Command } from '../../types';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { analyzeCommandSafety } from '../../utils/safety';
+import { DEFAULT_CATEGORIES } from '../../utils/categories';
 
 interface CommandCardProps {
   command: Command;
@@ -38,11 +40,23 @@ export const CommandCard: React.FC<CommandCardProps> = ({
 }) => {
   const { user, isAdmin } = useAuth();
   const { success, error } = useToast();
+  const { language, t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   const isOwner = user && user.uid === command.ownerUid;
   const canModify = isOwner || (isAdmin && command.visibility === 'public');
-  const safety = analyzeCommandSafety(command.command);
+  const safety = analyzeCommandSafety(command.command, language);
+
+  // Localized text resolution
+  const displayName = language === 'id' && command.nameId ? command.nameId : command.name;
+  const displayDescription =
+    language === 'id' && command.descriptionId ? command.descriptionId : command.description;
+
+  const categoryMeta = DEFAULT_CATEGORIES.find(
+    (c) => c.name.toLowerCase() === command.category.toLowerCase()
+  );
+  const displayCategory =
+    language === 'id' && categoryMeta?.nameId ? categoryMeta.nameId : command.category;
 
   // Copy to clipboard with graceful error handling
   const handleCopy = async (e: React.MouseEvent) => {
@@ -53,11 +67,10 @@ export const CommandCard: React.FC<CommandCardProps> = ({
       }
       await navigator.clipboard.writeText(command.command);
       setCopied(true);
-      success('Copied to clipboard', `Command "${command.name}" copied.`);
+      success(t('copySuccessToast'), `"${displayName}" ${language === 'id' ? 'berhasil disalin.' : 'copied.'}`);
       setTimeout(() => setCopied(false), 2000);
     } catch (err: any) {
       console.error('Clipboard copy error:', err);
-      // Fallback
       try {
         const textarea = document.createElement('textarea');
         textarea.value = command.command;
@@ -69,10 +82,10 @@ export const CommandCard: React.FC<CommandCardProps> = ({
         document.execCommand('copy');
         document.body.removeChild(textarea);
         setCopied(true);
-        success('Copied to clipboard');
+        success(t('copySuccessToast'));
         setTimeout(() => setCopied(false), 2000);
       } catch {
-        error('Failed to copy', 'Please select and copy the command text manually.');
+        error(t('copyFailedToast'), t('copyFailedDesc'));
       }
     }
   };
@@ -94,19 +107,19 @@ export const CommandCard: React.FC<CommandCardProps> = ({
               }}
               className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition"
             >
-              {command.category}
+              {displayCategory}
             </button>
 
             {/* Visibility badge */}
             {command.visibility === 'public' ? (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/40 dark:border-emerald-800/40">
                 <Globe className="w-3 h-3" />
-                Public
+                {t('publicBadge')}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/40 dark:border-amber-800/40">
                 <Lock className="w-3 h-3" />
-                Private
+                {t('privateBadge')}
               </span>
             )}
 
@@ -121,7 +134,7 @@ export const CommandCard: React.FC<CommandCardProps> = ({
                 }`}
               >
                 <AlertTriangle className="w-3 h-3" />
-                {safety.severity === 'danger' ? 'Destructive' : 'Caution'}
+                {safety.severity === 'danger' ? t('destructiveBadge') : t('cautionBadge')}
               </span>
             )}
           </div>
@@ -146,12 +159,12 @@ export const CommandCard: React.FC<CommandCardProps> = ({
 
         {/* Command Name */}
         <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1 mb-1.5">
-          {command.name}
+          {displayName}
         </h3>
 
         {/* Short Description */}
         <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mb-3 leading-relaxed">
-          {command.description}
+          {displayDescription}
         </p>
 
         {/* Code Snippet Box */}
@@ -177,12 +190,12 @@ export const CommandCard: React.FC<CommandCardProps> = ({
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5" />
-                <span>Copied</span>
+                <span>{t('copiedBtn')}</span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                <span>Copy</span>
+                <span>{t('copyBtn')}</span>
               </>
             )}
           </button>
@@ -215,7 +228,7 @@ export const CommandCard: React.FC<CommandCardProps> = ({
           }}
           className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
         >
-          <span>View Details</span>
+          <span>{t('viewDetails')}</span>
           <ExternalLink className="w-3 h-3" />
         </button>
 
@@ -224,14 +237,14 @@ export const CommandCard: React.FC<CommandCardProps> = ({
             <button
               onClick={() => onEdit(command)}
               className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-              title="Edit command"
+              title={t('editBtn')}
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onDelete(command)}
               className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
-              title="Delete command"
+              title={t('deleteBtn')}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>

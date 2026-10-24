@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle, Sparkles, Plus } from 'lucide-react';
+import { X, Save, Plus } from 'lucide-react';
 import { Command, CommandFormData, Visibility } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { DEFAULT_CATEGORIES } from '../../utils/categories';
 import { createCommand, updateCommand, addFavorite } from '../../services/commands';
 
@@ -23,6 +24,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
 }) => {
   const { user, isAdmin } = useAuth();
   const { success, error } = useToast();
+  const { language, t } = useLanguage();
 
   const [name, setName] = useState('');
   const [command, setCommand] = useState('');
@@ -64,7 +66,6 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
       setCategory(DEFAULT_CATEGORIES[0].name);
       setIsCustomCategory(false);
       setCustomCategory('');
-      // Non-admins default to 'private' since Firestore rules restrict public creation to admins
       setVisibility(isAdmin ? 'public' : 'private');
       setTags([]);
       setIsFavorite(false);
@@ -95,14 +96,17 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!name.trim()) errs.name = 'Command name is required';
-    if (!command.trim()) errs.command = 'Command syntax is required';
-    if (!description.trim()) errs.description = 'Description is required';
+    if (!name.trim()) errs.name = language === 'id' ? 'Nama perintah wajib diisi' : 'Command name is required';
+    if (!command.trim()) errs.command = language === 'id' ? 'Sintaks perintah wajib diisi' : 'Command syntax is required';
+    if (!description.trim()) errs.description = language === 'id' ? 'Deskripsi wajib diisi' : 'Description is required';
     const finalCat = isCustomCategory ? customCategory.trim() : category;
-    if (!finalCat) errs.category = 'Category is required';
+    if (!finalCat) errs.category = language === 'id' ? 'Kategori wajib diisi' : 'Category is required';
 
     if (visibility === 'public' && !isAdmin) {
-      errs.visibility = 'Only authorized administrators can publish public commands. Please set visibility to Private.';
+      errs.visibility =
+        language === 'id'
+          ? 'Hanya administrator resmi yang dapat mempublikasikan perintah publik. Silakan atur visibilitas ke Pribadi.'
+          : 'Only authorized administrators can publish public commands. Please set visibility to Private.';
     }
 
     setErrors(errs);
@@ -113,7 +117,10 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
     e.preventDefault();
 
     if (!user) {
-      error('Authentication required', 'Please sign in to save commands.');
+      error(
+        language === 'id' ? 'Otentikasi Diperlukan' : 'Authentication required',
+        language === 'id' ? 'Silakan masuk untuk menyimpan perintah.' : 'Please sign in to save commands.'
+      );
       onOpenAuth();
       return;
     }
@@ -135,20 +142,29 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
     try {
       if (editingCommand) {
         await updateCommand(editingCommand.id, payload);
-        success('Command updated', `"${name}" was successfully updated.`);
+        success(
+          language === 'id' ? 'Perintah diperbarui' : 'Command updated',
+          `"${name}" ${language === 'id' ? 'berhasil diperbarui.' : 'was successfully updated.'}`
+        );
         onSuccess(editingCommand.id);
       } else {
         const newId = await createCommand(payload, user.uid);
         if (isFavorite && user) {
           await addFavorite(user.uid, newId);
         }
-        success('Command created', `"${name}" has been added to CommandVault.`);
+        success(
+          language === 'id' ? 'Perintah dibuat' : 'Command created',
+          `"${name}" ${language === 'id' ? 'telah ditambahkan ke CommandVault.' : 'has been added to CommandVault.'}`
+        );
         onSuccess(newId);
       }
       onClose();
     } catch (err: any) {
       console.error('Save error:', err);
-      error('Failed to save command', err.message || 'Please check your permissions and try again.');
+      error(
+        language === 'id' ? 'Gagal menyimpan perintah' : 'Failed to save command',
+        err.message || (language === 'id' ? 'Periksa izin Anda dan coba lagi.' : 'Please check your permissions and try again.')
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -168,10 +184,10 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
         <div className="flex items-center justify-between pb-4 border-b border-slate-200/60 dark:border-slate-800/60">
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              {editingCommand ? 'Edit Command' : 'Add New Command'}
+              {editingCommand ? t('editCommandTitle') : t('addNewCommandTitle')}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Reference documentation is stored as text and never executed.
+              {t('formSubtext')}
             </p>
           </div>
           <button
@@ -188,13 +204,13 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
           {/* Command Name */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Command Name <span className="text-rose-500">*</span>
+              {t('commandNameLabel')} <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Find & Delete Old Log Files, Git Interactive Rebase"
+              placeholder={t('commandNamePlaceholder')}
               className="w-full px-3.5 py-2.5 text-sm rounded-xl glass-input text-slate-900 dark:text-white focus:outline-none"
               maxLength={120}
               required
@@ -206,9 +222,9 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Command Text / CLI Syntax <span className="text-rose-500">*</span>
+                {t('commandSyntaxLabel')} <span className="text-rose-500">*</span>
               </label>
-              <span className="text-[11px] text-slate-400">Preserves line breaks</span>
+              <span className="text-[11px] text-slate-400">{t('preservesLineBreaks')}</span>
             </div>
             <textarea
               value={command}
@@ -225,12 +241,12 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
           {/* Description */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Description & Purpose <span className="text-rose-500">*</span>
+              {t('descLabel')} <span className="text-rose-500">*</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Explain what the command does, flags used, and expected behavior..."
+              placeholder={t('descPlaceholder')}
               rows={3}
               className="w-full px-3.5 py-2.5 text-sm rounded-xl glass-input text-slate-900 dark:text-white focus:outline-none resize-y"
               maxLength={1500}
@@ -244,7 +260,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
             {/* Category */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Category <span className="text-rose-500">*</span>
+                {t('categoryLabel')} <span className="text-rose-500">*</span>
               </label>
               {!isCustomCategory ? (
                 <div className="space-y-2">
@@ -261,10 +277,10 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
                   >
                     {DEFAULT_CATEGORIES.map((c) => (
                       <option key={c.id} value={c.name}>
-                        {c.name}
+                        {language === 'id' && c.nameId ? c.nameId : c.name}
                       </option>
                     ))}
-                    <option value="__custom__">+ Add Custom Category...</option>
+                    <option value="__custom__">{t('addCustomCategoryOption')}</option>
                   </select>
                 </div>
               ) : (
@@ -273,7 +289,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
                     type="text"
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
-                    placeholder="e.g. Kubernetes, AWS, Rust"
+                    placeholder={t('customCategoryPlaceholder')}
                     className="flex-1 px-3.5 py-2.5 text-sm rounded-xl glass-input text-slate-900 dark:text-white focus:outline-none"
                     maxLength={50}
                   />
@@ -285,7 +301,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
                     }}
                     className="px-3 py-2 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl"
                   >
-                    Cancel
+                    {t('cancelBtn')}
                   </button>
                 </div>
               )}
@@ -295,7 +311,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
             {/* Visibility */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Visibility Scope
+                {t('visibilityLabel')}
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -308,7 +324,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
                       : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
                   } ${!isAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  Public {isAdmin ? '(Admin)' : ''}
+                  {t('visibilityPublicLabel')} {isAdmin ? '(Admin)' : ''}
                 </button>
                 <button
                   type="button"
@@ -319,12 +335,12 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
                       : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  Private (Owner only)
+                  {t('visibilityPrivateLabel')}
                 </button>
               </div>
               {!isAdmin && visibility === 'public' && (
                 <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                  Only authorized admins can publish public library commands.
+                  {t('visibilityAdminNotice')}
                 </p>
               )}
               {errors.visibility && <p className="text-xs text-rose-500 mt-1">{errors.visibility}</p>}
@@ -334,7 +350,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
           {/* Tags */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tags (Optional)
+              {t('tagsLabel')}
             </label>
             <div className="flex gap-2">
               <input
@@ -342,7 +358,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
-                placeholder="Type tag and press Enter"
+                placeholder={t('tagInputPlaceholder')}
                 className="flex-1 px-3.5 py-2 text-sm rounded-xl glass-input text-slate-900 dark:text-white focus:outline-none"
               />
               <button
@@ -351,20 +367,20 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
                 className="px-3.5 py-2 text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition flex items-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Add
+                {t('addTagBtn')}
               </button>
             </div>
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2.5">
-                {tags.map((t) => (
+                {tags.map((tItem) => (
                   <span
-                    key={t}
+                    key={tItem}
                     className="inline-flex items-center gap-1 text-xs font-mono px-2.5 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50"
                   >
-                    #{t}
+                    #{tItem}
                     <button
                       type="button"
-                      onClick={() => handleRemoveTag(t)}
+                      onClick={() => handleRemoveTag(tItem)}
                       className="text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-200"
                     >
                       <X className="w-3 h-3" />
@@ -385,7 +401,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
                   onChange={(e) => setIsFavorite(e.target.checked)}
                   className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
                 />
-                <span>Save to My Favorites automatically</span>
+                <span>{t('saveFavoritesCheckbox')}</span>
               </label>
             </div>
           )}
@@ -399,7 +415,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
             disabled={isSubmitting}
             className="px-4 py-2 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
           >
-            Cancel
+            {t('cancelBtn')}
           </button>
           <button
             type="button"
@@ -408,7 +424,7 @@ export const CommandFormModal: React.FC<CommandFormModalProps> = ({
             className="flex items-center gap-2 px-5 py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-xl transition shadow-sm shadow-indigo-500/20 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            <span>{isSubmitting ? 'Saving...' : editingCommand ? 'Save Changes' : 'Create Command'}</span>
+            <span>{isSubmitting ? t('savingBtn') : editingCommand ? t('saveChangesBtn') : t('createCommandBtn')}</span>
           </button>
         </div>
       </div>

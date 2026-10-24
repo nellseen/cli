@@ -14,6 +14,7 @@ import {
 import { Command, FilterView } from '../types';
 import { DEFAULT_CATEGORIES } from '../utils/categories';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CategoriesPageProps {
   publicCommands: Command[];
@@ -38,6 +39,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
   onNavigate,
 }) => {
   const { user } = useAuth();
+  const { language, t } = useLanguage();
   const allCommands = [...publicCommands, ...(user ? privateCommands : [])];
 
   // Identify all categories including any custom ones created by users
@@ -73,10 +75,10 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
     <div className="space-y-6 animate-in fade-in duration-300">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-          Command Categories
+          {t('categoriesPageTitle')}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Explore specialized developer toolkits and workflow commands organized by domain.
+          {t('categoriesPageDesc')}
         </p>
       </div>
 
@@ -84,6 +86,8 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {categoryStats.map((cat) => {
           const Icon = ICON_MAP[cat.icon] || Terminal;
+          const displayName = language === 'id' && cat.nameId ? cat.nameId : cat.name;
+          const displayDesc = language === 'id' && cat.descriptionId ? cat.descriptionId : cat.description;
 
           return (
             <div
@@ -97,25 +101,25 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
                     <Icon className="w-5 h-5" />
                   </div>
                   <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                    {cat.totalCount} {cat.totalCount === 1 ? 'command' : 'commands'}
+                    {cat.totalCount} {t('commandsCountUnit')}
                   </span>
                 </div>
 
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                  {cat.name}
+                  {displayName}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                  {cat.description}
+                  {displayDesc}
                 </p>
               </div>
 
               <div className="pt-4 mt-4 border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
                 <div className="flex items-center gap-3">
-                  <span>{cat.publicCount} Public</span>
-                  {user && <span>• {cat.privateCount} Private</span>}
+                  <span>{cat.publicCount} {t('publicBadge')}</span>
+                  {user && <span>• {cat.privateCount} {t('privateBadge')}</span>}
                 </div>
                 <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform">
-                  <span>Browse</span>
+                  <span>{t('browseCategory')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>
@@ -138,7 +142,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
                     <Layers className="w-5 h-5" />
                   </div>
                   <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                    {matching.length} commands
+                    {matching.length} {t('commandsCountUnit')}
                   </span>
                 </div>
 
@@ -146,13 +150,13 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
                   {customName}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                  User defined custom CLI category.
+                  {language === 'id' ? 'Kategori CLI kustom buatan pengguna.' : 'User defined custom CLI category.'}
                 </p>
               </div>
 
               <div className="pt-4 mt-4 border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-end text-xs font-medium text-indigo-600 dark:text-indigo-400">
                 <div className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  <span>Browse</span>
+                  <span>{t('browseCategory')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, LogIn, UserPlus, Shield, Terminal } from 'lucide-react';
+import { X, Mail, Lock, LogIn, UserPlus, Terminal } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,7 +11,8 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { signInWithGoogle, signInWithEmail, registerWithEmail, authError, clearAuthError } = useAuth();
-  const { success, error } = useToast();
+  const { success } = useToast();
+  const { language, t } = useLanguage();
 
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
   const [email, setEmail] = useState('');
@@ -27,17 +29,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     clearAuthError();
 
     if (!email || !password) {
-      setLocalError('Please enter both email and password.');
+      setLocalError(language === 'id' ? 'Silakan masukkan email dan kata sandi.' : 'Please enter both email and password.');
       return;
     }
 
     if (mode === 'register') {
       if (password !== confirmPassword) {
-        setLocalError('Passwords do not match.');
+        setLocalError(language === 'id' ? 'Kata sandi tidak cocok.' : 'Passwords do not match.');
         return;
       }
       if (password.length < 6) {
-        setLocalError('Password must be at least 6 characters.');
+        setLocalError(language === 'id' ? 'Kata sandi minimal 6 karakter.' : 'Password must be at least 6 characters.');
         return;
       }
     }
@@ -46,14 +48,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     try {
       if (mode === 'signin') {
         await signInWithEmail(email, password);
-        success('Signed in successfully', `Welcome back, ${email}`);
+        success(
+          language === 'id' ? 'Berhasil masuk' : 'Signed in successfully',
+          `${language === 'id' ? 'Selamat datang kembali' : 'Welcome back'}, ${email}`
+        );
       } else {
         await registerWithEmail(email, password);
-        success('Account created', 'You are now signed in. You can save private commands.');
+        success(
+          language === 'id' ? 'Akun berhasil dibuat' : 'Account created',
+          language === 'id' ? 'Anda sekarang dapat menyimpan perintah pribadi.' : 'You can now save private commands.'
+        );
       }
       onClose();
-    } catch (err: any) {
-      // Auth context sets friendly error messages
+    } catch {
+      // Handled in context
     } finally {
       setLoading(false);
     }
@@ -65,9 +73,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setLoading(true);
     try {
       await signInWithGoogle();
-      success('Signed in with Google');
+      success(language === 'id' ? 'Berhasil masuk dengan Google' : 'Signed in with Google');
       onClose();
-    } catch (err: any) {
+    } catch {
       // Handled in context
     } finally {
       setLoading(false);
@@ -91,10 +99,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                {mode === 'signin' ? 'Sign in to CommandVault' : 'Create Account'}
+                {mode === 'signin' ? t('authModalSignIn') : t('authModalRegister')}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Unlock private vaults and sync favorites
+                {t('authModalSubtext')}
               </p>
             </div>
           </div>
@@ -121,7 +129,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
             }`}
           >
-            Sign In
+            {t('tabSignIn')}
           </button>
           <button
             type="button"
@@ -136,7 +144,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
             }`}
           >
-            Register
+            {t('tabRegister')}
           </button>
         </div>
 
@@ -165,13 +173,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
             />
           </svg>
-          <span>Continue with Google</span>
+          <span>{t('continueWithGoogle')}</span>
         </button>
 
         <div className="relative flex items-center justify-center mb-4">
           <div className="border-t border-slate-200/80 dark:border-slate-800/80 w-full" />
           <span className="bg-transparent px-3 text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">
-            or with email
+            {t('orWithEmail')}
           </span>
         </div>
 
@@ -179,7 +187,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Email Address
+              {t('emailAddressLabel')}
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -196,7 +204,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Password
+              {t('passwordLabel')}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -214,7 +222,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           {mode === 'register' && (
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Confirm Password
+                {t('confirmPasswordLabel')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -242,12 +250,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-xl transition shadow-md shadow-indigo-500/20 disabled:opacity-50 mt-2"
           >
             {mode === 'signin' ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-            <span>{loading ? 'Authenticating...' : mode === 'signin' ? 'Sign In' : 'Create Account'}</span>
+            <span>{loading ? t('authenticatingBtn') : mode === 'signin' ? t('tabSignIn') : t('authModalRegister')}</span>
           </button>
         </form>
 
-        <p className="text-[11px] text-center text-slate-400 dark:text-slate-500 mt-4">
-          Self-registration creates personal user accounts. Admin privileges are verified through Firestore security rules.
+        <p className="text-[11px] text-center text-slate-400 dark:text-slate-500 mt-4 leading-relaxed">
+          {t('authNotice')}
         </p>
       </div>
     </div>

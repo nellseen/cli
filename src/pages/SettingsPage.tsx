@@ -3,15 +3,14 @@ import {
   ShieldCheck,
   Database,
   Download,
-  Terminal,
   User,
-  CheckCircle2,
   Sparkles,
-  Info,
   RefreshCw,
+  Languages,
 } from 'lucide-react';
 import { useAuth, BOOTSTRAPPED_ADMIN_EMAIL } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Command } from '../types';
 import { seedStarterLibrary } from '../services/commands';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -29,6 +28,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 }) => {
   const { user, isAdmin } = useAuth();
   const { success, error, info } = useToast();
+  const { language, setLanguage, t } = useLanguage();
   const [isSeeding, setIsSeeding] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -36,6 +36,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const handleExportJSON = () => {
     const data = {
       exportedAt: new Date().toISOString(),
+      language,
       userEmail: user?.email || 'anonymous',
       publicCommands,
       privateCommands: user ? privateCommands : [],
@@ -49,13 +50,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    success('Export complete', 'Command library downloaded as JSON backup.');
+    success(
+      language === 'id' ? 'Ekspor Berhasil' : 'Export complete',
+      language === 'id' ? 'Seluruh pustaka perintah diunduh sebagai cadangan JSON.' : 'Command library downloaded as JSON backup.'
+    );
   };
 
   // Seed standard library into Firestore
   const handleSeedDatabase = async () => {
     if (!user || !isAdmin) {
-      error('Admin authorization required', 'Only administrators can seed public commands to Firestore.');
+      error(
+        language === 'id' ? 'Izin Administrator Diperlukan' : 'Admin authorization required',
+        language === 'id' ? 'Hanya administrator yang dapat menulis perintah bawaan ke Firestore.' : 'Only administrators can seed public commands to Firestore.'
+      );
       return;
     }
 
@@ -63,10 +70,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     try {
       const count = await seedStarterLibrary(user.uid);
       await onRefreshData();
-      success('Database seeded', `Successfully wrote ${count} standard commands to Cloud Firestore.`);
+      success(
+        language === 'id' ? 'Basis Data Berhasil Diisi' : 'Database seeded',
+        language === 'id' ? `Berhasil menulis ${count} perintah standar ke Cloud Firestore.` : `Successfully wrote ${count} standard commands to Cloud Firestore.`
+      );
     } catch (err: any) {
       console.error('Seeding error:', err);
-      error('Failed to seed', err.message || 'Please verify Firestore security rules.');
+      error(
+        language === 'id' ? 'Gagal mengisi basis data' : 'Failed to seed',
+        err.message || (language === 'id' ? 'Periksa aturan keamanan Firestore.' : 'Please verify Firestore security rules.')
+      );
     } finally {
       setIsSeeding(false);
     }
@@ -76,9 +89,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setIsRefreshing(true);
     try {
       await onRefreshData();
-      info('Data synchronized', 'Fetched latest records from Cloud Firestore.');
+      info(
+        language === 'id' ? 'Data Disinkronkan' : 'Data synchronized',
+        language === 'id' ? 'Berhasil memuat catatan terbaru dari Cloud Firestore.' : 'Fetched latest records from Cloud Firestore.'
+      );
     } catch (err: any) {
-      error('Sync failed', err.message || 'Network error.');
+      error(
+        language === 'id' ? 'Sinkronisasi gagal' : 'Sync failed',
+        err.message || (language === 'id' ? 'Kesalahan jaringan.' : 'Network error.')
+      );
     } finally {
       setIsRefreshing(false);
     }
@@ -87,10 +106,67 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   return (
     <div className="space-y-6 max-w-4xl animate-in fade-in duration-300">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Settings & System</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('settingsTitle')}</h1>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Manage administrator configuration, database sync, and data exports.
+          {t('settingsDesc')}
         </p>
+      </div>
+
+      {/* Language Preference Card */}
+      <div className="p-6 rounded-3xl glass-card space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/50 dark:border-indigo-800/50">
+            <Languages className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              {language === 'id' ? 'Bahasa Aplikasi (Language)' : 'Application Language'}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {language === 'id' ? 'Pilih bahasa tampilan antarmuka dan dokumentasi sintaks' : 'Choose your preferred language for the interface and syntax documentation'}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          <button
+            onClick={() => setLanguage('id')}
+            className={`p-3.5 rounded-2xl border text-left transition ${
+              language === 'id'
+                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 shadow-sm'
+                : 'border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm">Bahasa Indonesia</span>
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                ID 🇮🇩
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Bahasa Indonesia aktif sebagai bahasa utama antarmuka.
+            </p>
+          </button>
+
+          <button
+            onClick={() => setLanguage('en')}
+            className={`p-3.5 rounded-2xl border text-left transition ${
+              language === 'en'
+                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 shadow-sm'
+                : 'border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm">English</span>
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                EN 🇬🇧
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              English language for international developers.
+            </p>
+          </button>
+        </div>
       </div>
 
       {/* User & Admin Access Card */}
@@ -100,34 +176,34 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <User className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Authentication & Roles</h3>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('authAndRolesTitle')}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Role-based authorization enforced by Firestore Security Rules
+              {t('authAndRolesDesc')}
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
           <div className="p-3.5 rounded-2xl code-container">
-            <span className="text-slate-400 block mb-1">Current User Status</span>
+            <span className="text-slate-400 block mb-1">{t('currentUserStatus')}</span>
             {user ? (
               <span className="font-semibold text-slate-800 dark:text-slate-200">
                 {user.email} (UID: {user.uid.slice(0, 12)}...)
               </span>
             ) : (
-              <span className="text-slate-500 italic">Unauthenticated (Guest browsing)</span>
+              <span className="text-slate-500 italic">{t('guestBrowsing')}</span>
             )}
           </div>
 
           <div className="p-3.5 rounded-2xl code-container">
-            <span className="text-slate-400 block mb-1">Administrator Privileges</span>
+            <span className="text-slate-400 block mb-1">{t('adminPrivileges')}</span>
             {isAdmin ? (
               <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
                 <ShieldCheck className="w-4 h-4" />
-                Authorized Admin ({BOOTSTRAPPED_ADMIN_EMAIL})
+                {t('authorizedAdminStatus')} ({BOOTSTRAPPED_ADMIN_EMAIL})
               </span>
             ) : (
-              <span className="text-slate-500">Standard User (Private commands only)</span>
+              <span className="text-slate-500">{t('standardUserStatus')}</span>
             )}
           </div>
         </div>
@@ -141,9 +217,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               <Database className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Cloud Firestore Backend</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('firestoreBackendTitle')}</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Persistent database & rules configuration
+                {t('firestoreBackendDesc')}
               </p>
             </div>
           </div>
@@ -154,18 +230,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl glass-input hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>Sync</span>
+            <span>{t('syncBtn')}</span>
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <div className="p-3.5 rounded-2xl code-container font-mono">
-            <span className="text-slate-400 block mb-1 text-[11px] font-sans">Firebase Project ID</span>
+            <span className="text-slate-400 block mb-1 text-[11px] font-sans">{t('firebaseProjectIdLabel')}</span>
             <span className="text-slate-800 dark:text-slate-200">{firebaseConfig.projectId}</span>
           </div>
 
           <div className="p-3.5 rounded-2xl code-container font-mono">
-            <span className="text-slate-400 block mb-1 text-[11px] font-sans">Firestore Database ID</span>
+            <span className="text-slate-400 block mb-1 text-[11px] font-sans">{t('firestoreDatabaseIdLabel')}</span>
             <span className="text-slate-800 dark:text-slate-200">{firebaseConfig.firestoreDatabaseId}</span>
           </div>
         </div>
@@ -176,10 +252,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <div className="text-xs">
               <p className="font-semibold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-indigo-500" />
-                Initialize Curated Public Commands
+                {t('seedLibraryTitle')}
               </p>
               <p className="text-slate-600 dark:text-slate-400 mt-0.5">
-                Populate Cloud Firestore with 26+ curated commands (Linux, Bash, Git, Docker, NPM, etc.)
+                {t('seedLibraryDesc')}
               </p>
             </div>
             <button
@@ -187,7 +263,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               disabled={isSeeding}
               className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-sm disabled:opacity-50 shrink-0"
             >
-              {isSeeding ? 'Writing to Firestore...' : 'Seed Public Library'}
+              {isSeeding ? t('seedingBtn') : t('seedBtn')}
             </button>
           </div>
         )}
@@ -200,23 +276,25 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <Download className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Data Export & Backup</h3>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('exportBackupTitle')}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Download your command library in structured JSON format
+              {t('exportBackupDesc')}
             </p>
           </div>
         </div>
 
         <div className="flex items-center justify-between pt-2">
           <p className="text-xs text-slate-600 dark:text-slate-400 max-w-md leading-relaxed">
-            Exports {publicCommands.length} public commands and {user ? privateCommands.length : 0} private commands including syntax, categories, and tags.
+            {language === 'id'
+              ? `Mengekspor ${publicCommands.length} perintah publik dan ${user ? privateCommands.length : 0} perintah pribadi Anda termasuk sintaks, kategori, dan tag.`
+              : `Exports ${publicCommands.length} public commands and ${user ? privateCommands.length : 0} private commands including syntax, categories, and tags.`}
           </p>
           <button
             onClick={handleExportJSON}
             className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export JSON</span>
+            <span>{t('exportBtn')}</span>
           </button>
         </div>
       </div>

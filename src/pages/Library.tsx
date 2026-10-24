@@ -4,8 +4,6 @@ import {
   Globe,
   Lock,
   Star,
-  Search,
-  Filter,
   ArrowUpDown,
   LayoutGrid,
   List,
@@ -17,6 +15,7 @@ import { Command, FilterView, SortOrder } from '../types';
 import { CommandCard } from '../components/commands/CommandCard';
 import { DEFAULT_CATEGORIES } from '../utils/categories';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 interface LibraryProps {
   publicCommands: Command[];
@@ -64,6 +63,7 @@ export const Library: React.FC<LibraryProps> = ({
   isLoading,
 }) => {
   const { user } = useAuth();
+  const { language, t } = useLanguage();
 
   // Combine accessible commands based on user auth
   const accessiblePool = useMemo(() => {
@@ -79,13 +79,21 @@ export const Library: React.FC<LibraryProps> = ({
 
   // Extract all distinct categories from commands
   const allCategories = useMemo(() => {
-    const set = new Set<string>();
-    DEFAULT_CATEGORIES.forEach((c) => set.add(c.name));
-    accessiblePool.forEach((c) => {
-      if (c.category) set.add(c.category);
+    const list: { id: string; name: string; displayName: string }[] = [];
+    DEFAULT_CATEGORIES.forEach((c) => {
+      list.push({
+        id: c.name,
+        name: c.name,
+        displayName: language === 'id' && c.nameId ? c.nameId : c.name,
+      });
     });
-    return Array.from(set);
-  }, [accessiblePool]);
+    accessiblePool.forEach((c) => {
+      if (c.category && !list.some((l) => l.name.toLowerCase() === c.category.toLowerCase())) {
+        list.push({ id: c.category, name: c.category, displayName: c.category });
+      }
+    });
+    return list;
+  }, [accessiblePool, language]);
 
   // Filter & Search
   const filteredCommands = useMemo(() => {
@@ -102,11 +110,11 @@ export const Library: React.FC<LibraryProps> = ({
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter((c) => {
-        const matchName = c.name.toLowerCase().includes(q);
+        const matchName = c.name.toLowerCase().includes(q) || (c.nameId && c.nameId.toLowerCase().includes(q));
         const matchCmd = c.command.toLowerCase().includes(q);
-        const matchDesc = c.description.toLowerCase().includes(q);
+        const matchDesc = c.description.toLowerCase().includes(q) || (c.descriptionId && c.descriptionId.toLowerCase().includes(q));
         const matchCat = c.category.toLowerCase().includes(q);
-        const matchTags = c.tags?.some((t) => t.toLowerCase().includes(q));
+        const matchTags = c.tags?.some((tagItem) => tagItem.toLowerCase().includes(q));
         return matchName || matchCmd || matchDesc || matchCat || matchTags;
       });
     }
@@ -114,7 +122,9 @@ export const Library: React.FC<LibraryProps> = ({
     // Sorting
     result.sort((a, b) => {
       if (sortOrder === 'alphabetical') {
-        return a.name.localeCompare(b.name);
+        const nameA = language === 'id' && a.nameId ? a.nameId : a.name;
+        const nameB = language === 'id' && b.nameId ? b.nameId : b.name;
+        return nameA.localeCompare(nameB);
       }
       if (sortOrder === 'updated') {
         const timeA = a.updatedAt?.toDate ? a.updatedAt.toDate().getTime() : 0;
@@ -128,7 +138,7 @@ export const Library: React.FC<LibraryProps> = ({
     });
 
     return result;
-  }, [accessiblePool, selectedCategory, searchQuery, sortOrder]);
+  }, [accessiblePool, selectedCategory, searchQuery, sortOrder, language]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -136,13 +146,13 @@ export const Library: React.FC<LibraryProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            {activeFilter === 'all' && 'Command Reference Library'}
-            {activeFilter === 'public' && 'Public Community Library'}
-            {activeFilter === 'private' && 'My Private Commands'}
-            {activeFilter === 'favorites' && 'Bookmarked Favorites'}
+            {activeFilter === 'all' && t('libraryHeadingAll')}
+            {activeFilter === 'public' && t('libraryHeadingPublic')}
+            {activeFilter === 'private' && t('libraryHeadingPrivate')}
+            {activeFilter === 'favorites' && t('libraryHeadingFavorites')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {filteredCommands.length} {filteredCommands.length === 1 ? 'command' : 'commands'} matching current filters
+            {filteredCommands.length} {t('commandsCountUnit')} {t('matchingCurrentFilters')}
           </p>
         </div>
 
@@ -179,7 +189,7 @@ export const Library: React.FC<LibraryProps> = ({
             className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-xl transition shadow-sm shadow-indigo-500/20"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Command</span>
+            <span>{t('addCommandBtn')}</span>
           </button>
         </div>
       </div>
@@ -195,7 +205,7 @@ export const Library: React.FC<LibraryProps> = ({
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>All Commands</span>
+          <span>{t('navAllCommands')}</span>
           <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
             {publicCommands.length + (user ? privateCommands.length : 0)}
           </span>
@@ -210,7 +220,7 @@ export const Library: React.FC<LibraryProps> = ({
           }`}
         >
           <Globe className="w-3.5 h-3.5" />
-          <span>Public Library</span>
+          <span>{t('navPublicLibrary')}</span>
           <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
             {publicCommands.length}
           </span>
@@ -228,7 +238,7 @@ export const Library: React.FC<LibraryProps> = ({
           }`}
         >
           <Lock className="w-3.5 h-3.5" />
-          <span>My Private</span>
+          <span>{t('navPrivateCommands')}</span>
           {user && (
             <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
               {privateCommands.length}
@@ -245,7 +255,7 @@ export const Library: React.FC<LibraryProps> = ({
           }`}
         >
           <Star className="w-3.5 h-3.5 fill-current" />
-          <span>Favorites</span>
+          <span>{t('navFavorites')}</span>
           <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">
             {favorites.length}
           </span>
@@ -264,19 +274,19 @@ export const Library: React.FC<LibraryProps> = ({
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            All Categories
+            {t('allCategories')}
           </button>
-          {allCategories.map((catName) => (
+          {allCategories.map((cat) => (
             <button
-              key={catName}
-              onClick={() => onCategorySelect(selectedCategory === catName ? null : catName)}
+              key={cat.id}
+              onClick={() => onCategorySelect(selectedCategory === cat.name ? null : cat.name)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
-                selectedCategory === catName
+                selectedCategory === cat.name
                   ? 'bg-indigo-600 text-white font-semibold shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              {catName}
+              {cat.displayName}
             </button>
           ))}
         </div>
@@ -290,9 +300,9 @@ export const Library: React.FC<LibraryProps> = ({
               onChange={(e) => onSortChange(e.target.value as SortOrder)}
               className="pl-8 pr-7 py-1.5 text-xs rounded-xl glass-input appearance-none text-slate-700 dark:text-slate-300 font-medium cursor-pointer focus:outline-none"
             >
-              <option value="recent">Recently Added</option>
-              <option value="alphabetical">Alphabetical (A-Z)</option>
-              <option value="updated">Recently Updated</option>
+              <option value="recent">{t('sortRecent')}</option>
+              <option value="alphabetical">{t('sortAlphabetical')}</option>
+              <option value="updated">{t('sortUpdated')}</option>
             </select>
           </div>
         </div>
@@ -301,10 +311,10 @@ export const Library: React.FC<LibraryProps> = ({
       {/* Active Search & Category Badge Chips */}
       {(searchQuery || selectedCategory) && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-slate-400 font-medium">Active filters:</span>
+          <span className="text-xs text-slate-400 font-medium">{t('activeFiltersLabel')}</span>
           {searchQuery && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50">
-              Query: "{searchQuery}"
+              {t('filterQuery')}: "{searchQuery}"
               <button onClick={() => onSearchChange('')} className="hover:text-indigo-900 dark:hover:text-white">
                 <X className="w-3 h-3" />
               </button>
@@ -312,7 +322,7 @@ export const Library: React.FC<LibraryProps> = ({
           )}
           {selectedCategory && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50">
-              Category: {selectedCategory}
+              {t('filterCategory')}: {selectedCategory}
               <button onClick={() => onCategorySelect(null)} className="hover:text-indigo-900 dark:hover:text-white">
                 <X className="w-3 h-3" />
               </button>
@@ -325,7 +335,7 @@ export const Library: React.FC<LibraryProps> = ({
             }}
             className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline"
           >
-            Clear all
+            {t('clearAllFilters')}
           </button>
         </div>
       )}
@@ -371,15 +381,15 @@ export const Library: React.FC<LibraryProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
             <Terminal className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">No commands found</h3>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('noCommandsFoundTitle')}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {searchQuery || selectedCategory
-              ? 'Try modifying your search keywords or clearing active category filters.'
+              ? t('noCommandsFoundSearch')
               : activeFilter === 'private'
-              ? 'You have not created any private commands yet.'
+              ? t('noCommandsFoundPrivate')
               : activeFilter === 'favorites'
-              ? 'You have not starred any favorite commands yet. Click the star icon on any command card to bookmark it.'
-              : 'Start your collection by adding your first CLI command.'}
+              ? t('noCommandsFoundFavorites')
+              : t('noCommandsFoundGeneral')}
           </p>
           <div className="pt-2 flex items-center justify-center gap-3">
             {(searchQuery || selectedCategory) && (
@@ -390,14 +400,14 @@ export const Library: React.FC<LibraryProps> = ({
                 }}
                 className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200"
               >
-                Clear Filters
+                {t('clearAllFilters')}
               </button>
             )}
             <button
               onClick={onOpenAddModal}
               className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm shadow-indigo-500/20"
             >
-              Add Command
+              {t('addCommandBtn')}
             </button>
           </div>
         </div>

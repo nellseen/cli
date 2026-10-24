@@ -3,8 +3,10 @@ export type Visibility = 'public' | 'private';
 export interface Command {
   id: string;
   name: string;
+  nameId?: string;
   command: string;
   description: string;
+  descriptionId?: string;
   category: string;
   tags?: string[];
   visibility: Visibility;
@@ -26,7 +28,9 @@ export interface CommandFormData {
 export interface CategoryInfo {
   id: string;
   name: string;
+  nameId?: string;
   description: string;
+  descriptionId?: string;
   color: string;
   icon: string;
 }

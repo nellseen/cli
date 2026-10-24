@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Trash2, X } from 'lucide-react';
 import { Command } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface DeleteConfirmModalProps {
   command: Command | null;
@@ -17,6 +18,8 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   onConfirm,
   isDeleting,
 }) => {
+  const { t } = useLanguage();
+
   if (!isOpen || !command) return null;
 
   return (
@@ -29,9 +32,9 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Delete Command</h3>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('deleteModalTitle')}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Are you sure you want to delete <span className="font-semibold text-slate-800 dark:text-slate-200">"{command.name}"</span>? This action cannot be reversed.
+              {t('deleteModalWarning')} <span className="font-semibold text-slate-800 dark:text-slate-200">"{command.name}"</span>{t('deleteModalWarningSuffix')}
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -49,7 +52,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             disabled={isDeleting}
             className="px-4 py-2 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
           >
-            Cancel
+            {t('cancelBtn')}
           </button>
           <button
             onClick={onConfirm}
@@ -57,7 +60,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             className="flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-sm shadow-rose-500/20 disabled:opacity-50"
           >
             <Trash2 className="w-4 h-4" />
-            <span>{isDeleting ? 'Deleting...' : 'Delete Command'}</span>
+            <span>{isDeleting ? t('deletingBtn') : t('confirmDeleteBtn')}</span>
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { TopNav } from './components/layout/TopNav';
 import { Dashboard } from './pages/Dashboard';
@@ -26,6 +27,7 @@ import { STARTER_COMMANDS } from './data/starterCommands';
 function AppContent() {
   const { user } = useAuth();
   const { success, error, info } = useToast();
+  const { language } = useLanguage();
 
   // Theme state
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -140,23 +142,26 @@ function AppContent() {
       try {
         if (isCurrentlyFav) {
           await removeFavorite(user.uid, commandId);
-          info('Removed from favorites');
+          info(language === 'id' ? 'Dihapus dari favorit' : 'Removed from favorites');
         } else {
           await addFavorite(user.uid, commandId);
-          success('Added to favorites');
+          success(language === 'id' ? 'Ditambahkan ke favorit' : 'Added to favorites');
         }
       } catch (err: any) {
         // Revert on error
         setFavorites(favorites);
-        error('Failed to update favorites', err.message);
+        error(
+          language === 'id' ? 'Gagal memperbarui favorit' : 'Failed to update favorites',
+          err.message
+        );
       }
     } else {
       // Local storage for guest
       localStorage.setItem('commandvault_guest_favs', JSON.stringify(newFavorites));
       if (isCurrentlyFav) {
-        info('Removed from favorites (guest session)');
+        info(language === 'id' ? 'Dihapus dari favorit (sesi tamu)' : 'Removed from favorites (guest session)');
       } else {
-        success('Added to favorites (guest session)');
+        success(language === 'id' ? 'Ditambahkan ke favorit (sesi tamu)' : 'Added to favorites (guest session)');
       }
     }
   };
@@ -167,7 +172,10 @@ function AppContent() {
     setIsDeleting(true);
     try {
       await deleteCommandDoc(deleteTarget.id);
-      success('Command deleted', `"${deleteTarget.name}" was removed.`);
+      success(
+        language === 'id' ? 'Perintah berhasil dihapus' : 'Command deleted',
+        `"${deleteTarget.name}" ${language === 'id' ? 'telah dihapus.' : 'was removed.'}`
+      );
 
       // Update state immediately
       setPublicCommands((prev) => prev.filter((c) => c.id !== deleteTarget.id));
@@ -179,7 +187,10 @@ function AppContent() {
       }
       setDeleteTarget(null);
     } catch (err: any) {
-      error('Delete failed', err.message || 'Permission denied.');
+      error(
+        language === 'id' ? 'Penghapusan gagal' : 'Delete failed',
+        err.message || (language === 'id' ? 'Izin ditolak.' : 'Permission denied.')
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -345,10 +356,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ToastProvider>
+    <LanguageProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ToastProvider>
+    </LanguageProvider>
   );
 }
