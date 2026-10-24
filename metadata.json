@@ -1,0 +1,6 @@
+{
+  "name": "CommandVault - Linux & CLI Command Library",
+  "description": "A premium Liquid Glass reference library for collecting, organizing, searching, and managing Linux, Bash, Git, Docker, and developer CLI commands.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

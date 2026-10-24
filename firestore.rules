@@ -1,0 +1,108 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all unknown collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'nellstoree59@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidCommand(data) {
+      return data.keys().hasAll(['name', 'command', 'description', 'category', 'visibility', 'ownerUid']) &&
+        data.keys().hasOnly(['name', 'command', 'description', 'category', 'tags', 'visibility', 'ownerUid', 'createdAt', 'updatedAt']) &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
+        data.command is string && data.command.size() > 0 && data.command.size() <= 5000 &&
+        data.description is string && data.description.size() <= 1500 &&
+        data.category is string && data.category.size() > 0 && data.category.size() <= 50 &&
+        (data.visibility == 'public' || data.visibility == 'private') &&
+        data.ownerUid is string && data.ownerUid.size() <= 128 &&
+        (!('tags' in data) || (data.tags is list && data.tags.size() <= 15));
+    }
+
+    function isValidFavorite(data) {
+      return data.keys().hasAll(['userId', 'commandId']) &&
+        data.keys().hasOnly(['userId', 'commandId', 'createdAt']) &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.commandId is string && data.commandId.size() <= 128;
+    }
+
+    // Commands Collection
+    match /commands/{commandId} {
+      allow get: if isValidId(commandId) && (
+        resource.data.visibility == 'public' ||
+        (isSignedIn() && resource.data.ownerUid == request.auth.uid)
+      );
+
+      allow list: if (
+        resource.data.visibility == 'public' ||
+        (isSignedIn() && resource.data.ownerUid == request.auth.uid)
+      );
+
+      allow create: if isValidId(commandId) &&
+        isSignedIn() &&
+        isValidCommand(incoming()) &&
+        incoming().ownerUid == request.auth.uid &&
+        (incoming().visibility == 'private' || isAdmin());
+
+      allow update: if isValidId(commandId) &&
+        isSignedIn() &&
+        isValidCommand(incoming()) &&
+        incoming().ownerUid == existing().ownerUid &&
+        (isAdmin() || (existing().ownerUid == request.auth.uid && existing().visibility == 'private')) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'command', 'description', 'category', 'tags', 'visibility', 'updatedAt']) &&
+        (!('createdAt' in incoming()) || incoming().createdAt == existing().createdAt);
+
+      allow delete: if isValidId(commandId) &&
+        isSignedIn() &&
+        (isAdmin() || (existing().ownerUid == request.auth.uid && existing().visibility == 'private'));
+    }
+
+    // User Bookmarks / Favorites Subcollection
+    match /users/{userId}/favorites/{commandId} {
+      allow read: if isValidId(userId) && isValidId(commandId) &&
+        isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isValidId(userId) && isValidId(commandId) &&
+        isSignedIn() && request.auth.uid == userId &&
+        isValidFavorite(incoming()) && incoming().userId == request.auth.uid;
+
+      allow update: if isValidId(userId) && isValidId(commandId) &&
+        isSignedIn() && request.auth.uid == userId &&
+        isValidFavorite(incoming()) && incoming().userId == request.auth.uid;
+
+      allow delete: if isValidId(userId) && isValidId(commandId) &&
+        isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Administrators Collection
+    match /admins/{adminUid} {
+      allow read: if isValidId(adminUid) && isSignedIn() && (request.auth.uid == adminUid || isAdmin());
+      allow write: if isValidId(adminUid) && isAdmin();
+    }
+  }
+}
